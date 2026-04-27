@@ -1,0 +1,23 @@
+# PDFs (manuel + QRH copyright BRM Aero / ACAF, ne pas committer)
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.egg-info/
+.venv/
+venv/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Claude Code
+.claude/
