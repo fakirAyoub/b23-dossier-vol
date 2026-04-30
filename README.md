@@ -20,7 +20,7 @@ L'application reproduit les **9 sections** du dossier de vol ACAF :
 
 ```bash
 pip install -r requirements.txt
-streamlit run b23_wb.py
+streamlit run Accueil.py
 ```
 
 Puis ouvre [http://localhost:8501](http://localhost:8501).
