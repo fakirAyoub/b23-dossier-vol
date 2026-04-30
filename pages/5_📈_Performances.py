@@ -17,11 +17,21 @@ st.caption("Calcul automatique TO/LDG d'après le Manuel § 5.2.4 et § 5.2.5 �
 # === Choix aérodrome ===
 st.subheader("✈️ Aérodrome de calcul")
 icao_options = ["(saisie manuelle)"] + sorted(AIRPORTS.keys())
-default_icao = st.session_state.depart if st.session_state.depart in AIRPORTS else "(saisie manuelle)"
+
+# Initialiser perf_airport au premier passage si pas déjà fait
+if "perf_airport" not in st.session_state:
+    st.session_state.perf_airport = (
+        st.session_state.depart if st.session_state.depart in AIRPORTS
+        else "(saisie manuelle)"
+    )
+# Si la valeur stockée n'est plus dans la liste (rare), reset
+if st.session_state.perf_airport not in icao_options:
+    st.session_state.perf_airport = "(saisie manuelle)"
+
 icao_sel = st.selectbox(
     "Aérodrome",
     options=icao_options,
-    index=icao_options.index(default_icao),
+    key="perf_airport",
     format_func=lambda x: x if x.startswith("(") else f"{x} — {get_airport(x)['name']}",
 )
 
