@@ -81,10 +81,22 @@ DEFAULTS = {
 
 
 def init_state():
-    """À appeler en haut de chaque page."""
+    """À appeler en haut de chaque page.
+
+    Note : le 'touch' `st.session_state[k] = st.session_state[k]` est un
+    workaround documenté de Streamlit. Sans ça, dans une appli multipage
+    les valeurs des widgets sont réinitialisées quand on quitte la page
+    où elles ont été créées (Streamlit "garbage collecte" les clés
+    de widgets non utilisés sur la nouvelle page). Le re-assignement
+    force la persistance.
+    Ref : https://docs.streamlit.io/develop/concepts/multipage-apps/widgets
+    """
     for k, v in DEFAULTS.items():
         if k not in st.session_state:
             st.session_state[k] = v
+        else:
+            # Touch pour forcer la persistance entre pages
+            st.session_state[k] = st.session_state[k]
 
 
 def render_save_load_sidebar():
