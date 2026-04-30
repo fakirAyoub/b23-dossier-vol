@@ -1,5 +1,7 @@
 # PDFs (manuel + QRH copyright BRM Aero / ACAF, ne pas committer)
 *.pdf
+# Mais on garde les templates ACAF utilisés par l'app
+!templates/*.pdf
 
 # Python
 __pycache__/

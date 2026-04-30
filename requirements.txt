@@ -4,3 +4,5 @@ matplotlib>=3.7
 numpy>=1.24
 fpdf2>=2.7
 requests>=2.31
+pypdf>=5.0
+reportlab>=4.0

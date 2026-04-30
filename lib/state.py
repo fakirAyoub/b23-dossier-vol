@@ -50,13 +50,15 @@ DEFAULTS = {
     "perf_slope": 0.0,
     "perf_wet": False,
     "perf_headwind": 0,
-    "perf_tora": 1100,             # m TORA LFPN piste 25
+    "perf_tora": 1100,
     "perf_lda": 1100,
+    "perf_runway_ident": "25R",    # piste sélectionnée
+    "perf_use_metar_wind": True,   # calcul auto vent depuis METAR
 
     # Journal de navigation
-    "branches": [],                # liste de dicts {from, to, alt, rv, dist_nm, ...}
+    "branches": [],
     "tas_kt": 100,
-    "magnetic_variation": 1.0,     # +1° E pour la France
+    "magnetic_variation": 1.0,
     "deviation_compas": 0,
 
     # Équipements
@@ -83,3 +85,38 @@ def init_state():
     for k, v in DEFAULTS.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+
+def render_save_load_sidebar():
+    """Boutons Sauvegarder / Charger un dossier dans la sidebar."""
+    from .dossier_io import export_dossier_to_json, import_dossier_from_json, suggested_filename
+
+    with st.sidebar:
+        st.divider()
+        st.subheader("💾 Dossier")
+
+        # Export
+        try:
+            json_text = export_dossier_to_json()
+            st.download_button(
+                "📥 Sauvegarder (JSON)",
+                data=json_text,
+                file_name=suggested_filename(),
+                mime="application/json",
+                use_container_width=True,
+            )
+        except Exception as e:
+            st.error(f"Erreur export : {e}")
+
+        # Import
+        uploaded = st.file_uploader("📤 Charger un dossier", type=["json"],
+                                     key="_dossier_uploader",
+                                     label_visibility="collapsed")
+        if uploaded is not None:
+            txt = uploaded.read().decode("utf-8")
+            ok, msg = import_dossier_from_json(txt)
+            if ok:
+                st.success(msg)
+                st.rerun()
+            else:
+                st.error(msg)
