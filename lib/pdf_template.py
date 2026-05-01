@@ -198,27 +198,95 @@ def _draw_page_3_mel(c):
 
 
 def _draw_page_4_meteo(c):
-    """Page 4 — Météo : on écrit un résumé en bas + tick "envisageable"."""
-    summary_lines = []
-    if _has(st.session_state.get("metar_dep")):
-        summary_lines.append(f"METAR {st.session_state.get('depart','')} : "
-                             f"{(st.session_state.get('metar_dep') or '')[:80]}")
-    if _has(st.session_state.get("taf_dep")):
-        summary_lines.append(f"TAF {st.session_state.get('depart','')} : "
-                             f"{(st.session_state.get('taf_dep') or '')[:80]}")
-    if _has(st.session_state.get("metar_arr")):
-        summary_lines.append(f"METAR {st.session_state.get('arrivee','')} : "
-                             f"{(st.session_state.get('metar_arr') or '')[:80]}")
-    if _has(st.session_state.get("meteo_temsi")):
-        summary_lines.append(f"TEMSI : {(st.session_state.get('meteo_temsi') or '')[:80]}")
-    if _has(st.session_state.get("meteo_wintem")):
-        summary_lines.append(f"WINTEM : {(st.session_state.get('meteo_wintem') or '')[:80]}")
-    txt = "\n".join(summary_lines)
-    _t_multiline(c, 35, 470, txt, size=8, line_h=10, max_width=350, max_lines=8)
+    """Page 4 — Météo : valeurs à droite de chaque bullet."""
+    # === TEMSI : on masque le placeholder "(visibilité, nuages, plafonds, etc.)"
+    # et on écrit la description du user à sa place. ===
+    temsi = (st.session_state.get("meteo_temsi") or "").strip()
+    if temsi:
+        # Mask blanc sur la ligne "(visibilité...)" qui est à y≈278-292
+        c.setFillColor(white)
+        c.rect(115, PAGE_H - 295, 305, 18, fill=1, stroke=0)
+        c.setFillColor(black)
+        # Texte user à la place
+        _t_multiline(c, 120, 287, temsi, size=8, line_h=9,
+                     max_width=290, max_lines=2)
 
-    # Vol envisageable
+    # === WINTEM bullets ===
+    wd = st.session_state.get("wintem_wind_dir", 0)
+    ws = st.session_state.get("wintem_wind_kt", 0)
+    wt = st.session_state.get("wintem_temp", 0)
+    walt = st.session_state.get("wintem_alt_ft", 3000)
+    drift = st.session_state.get("wintem_drift_max", 0)
+    isa_at_alt = 15 - 2 * (walt / 1000)
+    delta_isa = wt - isa_at_alt
+
+    # Altitude WINTEM à droite du header "WINTEM" (y=301)
+    _t(c, 235, 301, f"({walt} ft)", size=9, bold=False, color=gray)
+
+    # Valeurs sous-bullets — x à droite des labels (qui se terminent ~x=270)
+    x_val = 285
+    _t(c, x_val, 313, f": {int(wd):03d}°", size=9)              # Direction
+    _t(c, x_val, 326, f": {int(ws)} kt", size=9)                # Force
+    _t(c, x_val, 339, f": {int(wt)}°C", size=9)                 # Température
+    _t(c, x_val, 351, f": {delta_isa:+.1f}°C", size=9)          # Delta ISA
+    _t(c, x_val, 364, f": {int(drift)}°", size=9)               # Dérive max
+
+    # === METAR / TAF — DEP + ARR ===
+    dep = st.session_state.get("depart", "")
+    arr = st.session_state.get("arrivee", "")
+    metar_dep = (st.session_state.get("metar_dep") or "").strip()
+    metar_arr = (st.session_state.get("metar_arr") or "").strip()
+    taf_dep = (st.session_state.get("taf_dep") or "").strip()
+    taf_arr = (st.session_state.get("taf_arr") or "").strip()
+    src_dep = st.session_state.get("metar_dep_source", "") or dep
+    src_arr = st.session_state.get("metar_arr_source", "") or arr
+
+    # METAR (label baseline = 386)
+    label_dep = f"{dep}" + (f"→{src_dep}" if src_dep and src_dep != dep else "")
+    label_arr = f"{arr}" + (f"→{src_arr}" if src_arr and src_arr != arr else "")
+    if metar_dep:
+        _t(c, 145, 386, f"{label_dep}: {metar_dep}", size=6, max_width=260)
+    if metar_arr and arr != dep:
+        _t(c, 145, 395, f"{label_arr}: {metar_arr}", size=6, max_width=260)
+
+    # TAF (label baseline = 407)
+    if taf_dep:
+        _t(c, 145, 407, f"{label_dep}: {taf_dep}", size=6, max_width=260)
+    if taf_arr and arr != dep:
+        _t(c, 145, 416, f"{label_arr}: {taf_arr}", size=6, max_width=260)
+
+    # === Conditions au sol pour les 2 aéroports (synthèse) ===
+    from .airports import get_airport
+    _t(c, 50, 440, "Conditions au sol (extraites des METAR) :", size=8, bold=True)
+
+    def _ground_isa_dev(elev_ft: int, oat: float) -> float:
+        return oat - (15 - 2 * elev_ft / 1000)
+
+    qnh_d = st.session_state.get("qnh", 1013)
+    oat_d = st.session_state.get("oat", 15)
+    wd_d = st.session_state.get("vent_dir", 0)
+    wk_d = st.session_state.get("vent_kt", 0)
+    ad_dep = get_airport(dep)
+    elev_d = ad_dep["elevation_ft"] if ad_dep else 0
+    disa_d = _ground_isa_dev(elev_d, oat_d)
+    _t(c, 60, 455, f"🛫 {dep} ({elev_d} ft) : vent {wd_d:03d}°/{wk_d}kt · "
+                    f"QNH {qnh_d} · OAT {oat_d}°C · ΔISA {disa_d:+.1f}°C",
+       size=8)
+
+    qnh_a = st.session_state.get("qnh_arr", qnh_d)
+    oat_a = st.session_state.get("oat_arr", oat_d)
+    wd_a = st.session_state.get("vent_dir_arr", wd_d)
+    wk_a = st.session_state.get("vent_kt_arr", wk_d)
+    ad_arr = get_airport(arr)
+    elev_a = ad_arr["elevation_ft"] if ad_arr else 0
+    disa_a = _ground_isa_dev(elev_a, oat_a)
+    _t(c, 60, 470, f"🛬 {arr} ({elev_a} ft) : vent {wd_a:03d}°/{wk_a}kt · "
+                    f"QNH {qnh_a} · OAT {oat_a}°C · ΔISA {disa_a:+.1f}°C",
+       size=8)
+
+    # Vol envisageable — DANS le cadre "Le vol est-il envisageable ?"
     yes = bool(st.session_state.get("vol_envisageable"))
-    _t(c, 280, 700, "OUI" if yes else "NON / À RÉÉVALUER",
+    _t(c, 285, 528, "→ OUI" if yes else "→ NON / À RÉÉVALUER",
        size=10, bold=True, color=(black if yes else gray))
 
 
@@ -364,39 +432,26 @@ def _draw_page_8_perfs(c):
     ld = landing_perf(zp_dep, dep_oat, grass=grass, slope_pct=slope, wet=wet, wind_kt=dep_wind)
 
     x_val = 255
-    x_lim = 380
+    # Distances utilisables (≤TORA, ≤LDA) : NON remplies — gérées manuellement par le pilote.
 
     _t(c, x_val, 259, f"{round(to['tor'])} m", size=8)
-    _t(c, x_lim, 259, f"{tora}", size=8)
-
     _t(c, x_val, 281, f"{round(to['tod'])} m", size=8)
-    _t(c, x_lim, 281, f"{tora}", size=8)
-
     _t(c, x_val, 305, f"{round(to['tor'])} m", size=8)
-    _t(c, x_lim, 305, f"{tora}", size=8)
-
     _t(c, x_val, 331, f"{ROC_SL_MCP} ft/min", size=8)
 
-    # ATTERRISSAGE — utilise conditions ARRIVEE (atterrissage = aéroport d'arrivée)
+    # ATTERRISSAGE — utilise conditions ARRIVEE
     zp_arr = pressure_altitude(arr_alt, arr_qnh)
     ld_arr = landing_perf(zp_arr, arr_oat, grass=grass, slope_pct=slope, wet=wet, wind_kt=arr_wind)
-    arr_lda = (arr_ad["runways"][0]["lda"] if arr_ad and arr_ad["runways"] else lda)
 
     _t(c, x_val, 353, f"{round(ld_arr['ldd'])} m", size=8)
-    _t(c, x_lim, 353, f"{arr_lda}", size=8)
-
     _t(c, x_val, 379, f"{round(ld_arr['ldr'])} m", size=8)
-
     _t(c, x_val, 403, f"{ROC_SL_FLAPS10_MTOP} ft/min", size=8)
 
-    # Distance atterrissage volets UP — approximation = LDD × 1.4 (volets UP plus long)
+    # Distance atterrissage volets UP — approximation = LDD × 1,4
     ldd_up = round(ld_arr['ldd'] * 1.4)
     _t(c, x_val, 433, f"{ldd_up} m", size=8)
-    _t(c, x_lim, 433, f"{arr_lda}", size=8)
 
-    # === Performances DEGAGEMENT(S) — section du bas ===
-    # 3 colonnes pour 3 dégagements possibles
-    # X centers approximatives : 290, 340, 390
+    # === Performances DEGAGEMENT(S) — 3 colonnes (pas de limites LDA) ===
     deg_cols_x = [285, 335, 385]
     for i, deg_ic in enumerate(deg_list[:3]):
         x_d = deg_cols_x[i]
@@ -404,26 +459,13 @@ def _draw_page_8_perfs(c):
         if not deg_ad_i:
             continue
         deg_alt_i = deg_ad_i["elevation_ft"]
-        deg_lda_i = deg_ad_i["runways"][0]["lda"] if deg_ad_i["runways"] else 1100
-        # Conditions : utilise METAR du 1er dégagement pour tous (simplification)
         zp_deg = pressure_altitude(deg_alt_i, deg_qnh)
         ld_deg = landing_perf(zp_deg, deg_oat, grass=grass, slope_pct=slope,
                               wet=wet, wind_kt=deg_wind)
-        # Lignes dégagement (similaire à atterrissage section)
-        _t(c, x_d, 460, f"{round(ld_deg['ldd'])}", size=7)   # LDD 15m volets LDG
-        _t(c, x_d, 488, f"{round(ld_deg['ldr'])}", size=7)   # LDR
-        _t(c, x_d, 516, f"{ROC_SL_FLAPS10_MTOP}", size=7)    # Taux montée API
-        _t(c, x_d, 545, f"{round(ld_deg['ldd'] * 1.4)}", size=7)  # Volets UP
-
-    # Limites LDA pour dégagement (3 valeurs)
-    if deg_list:
-        for i, deg_ic in enumerate(deg_list[:3]):
-            deg_ad_i = get_airport(deg_ic)
-            if deg_ad_i and deg_ad_i["runways"]:
-                lda_d = deg_ad_i["runways"][0]["lda"]
-                # Limite LDA pour LDD: même ligne y=460
-                _t(c, x_lim, 460, f"{lda_d}", size=7) if i == 0 else None
-                _t(c, x_lim, 545, f"{lda_d}", size=7) if i == 0 else None
+        _t(c, x_d, 460, f"{round(ld_deg['ldd'])}", size=7)
+        _t(c, x_d, 488, f"{round(ld_deg['ldr'])}", size=7)
+        _t(c, x_d, 516, f"{ROC_SL_FLAPS10_MTOP}", size=7)
+        _t(c, x_d, 545, f"{round(ld_deg['ldd'] * 1.4)}", size=7)
 
 
 def _draw_page_9_carburant(c):
@@ -554,21 +596,21 @@ def _draw_page_10_mb(c):
             _t(c, x_moment, y, f"{moment:.1f}", size=8)
 
     # === Remplacer le graphique AT3 par celui du B23 ===
-    # Masque blanc large pour couvrir AT3 chart + labels périphériques
+    # Masque blanc — démarre y=388 (couvre AV/AR/CMA labels) jusqu'à y=585
+    # mais ÉPARGNE la ligne "Total à l'atterrissage" qui finit ≈ y=386.
     c.setFillColor(white)
-    c.rect(40, PAGE_H - 580, 380, 215, fill=1, stroke=0)  # x=40-420, y=365-580
+    c.rect(40, PAGE_H - 585, 380, 197, fill=1, stroke=0)  # y_top 388-585
     c.setFillColor(black)
 
-    # Insertion du graphique B23 — taille adaptée
+    # Insertion du graphique B23
     try:
         chart_buf = _generate_wb_envelope_image(wb["cg"], wb["total_mass"])
         chart_img = ImageReader(chart_buf)
-        # Position centrée : x=50, y=PAGE_H-555, width=320, height=180
-        c.drawImage(chart_img, 50, PAGE_H - 555,
-                    width=320, height=180,
+        c.drawImage(chart_img, 50, PAGE_H - 580,
+                    width=320, height=175,
                     preserveAspectRatio=True, mask='auto')
     except Exception as e:
-        _t(c, 100, 470, f"(Graphique B23 indisponible : {e})", size=8, color=gray)
+        _t(c, 100, 480, f"(Graphique B23 indisponible : {e})", size=8, color=gray)
 
 
 def _draw_page_11_equip_radio(c):
@@ -661,10 +703,9 @@ def _total_mass() -> float:
 # ============================================================
 
 # Mapping page (0-based) → fonction de dessin
-# On ne remplit QUE les pages critiques (cover + perfs + carbu + M&B).
-# Les autres restent vierges — l'utilisateur les remplit à la main.
 PAGE_DRAWERS = {
     0:  _draw_page_1_cover,       # Page 1 — Cover
+    3:  _draw_page_4_meteo,       # Page 4 — Météo (WINTEM + METAR/TAF)
     7:  _draw_page_8_perfs,       # Page 8 — Performances
     8:  _draw_page_9_carburant,   # Page 9 — Carburant
     9:  _draw_page_10_mb,         # Page 10 — Masse & Centrage

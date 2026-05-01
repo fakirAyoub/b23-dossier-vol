@@ -17,9 +17,21 @@ DEFAULTS = {
     "metar_arr": "", "taf_arr": "",
     "metar_deg": "", "taf_deg": "",
     "meteo_temsi": "", "meteo_wintem": "",
+    # WINTEM détaillé (pour PDF)
+    "wintem_alt_ft": 3000,
+    "wintem_wind_dir": 0,
+    "wintem_wind_kt": 0,
+    "wintem_temp": 0,
+    "wintem_drift_max": 0,
     "vol_envisageable": False,
     "qnh": 1013, "oat": 15,
     "vent_dir": 0, "vent_kt": 0,
+    # Conditions ARRIVÉE (extraites de metar_arr)
+    "qnh_arr": 1013, "oat_arr": 15,
+    "vent_dir_arr": 0, "vent_kt_arr": 0,
+    # Source des METAR (si fallback sur aérodrome voisin)
+    "metar_dep_source": "", "metar_dep_distance_km": 0,
+    "metar_arr_source": "", "metar_arr_distance_km": 0,
 
     # NOTAM
     "notam_depart": "", "notam_route": "",

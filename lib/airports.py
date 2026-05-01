@@ -13,6 +13,7 @@ AIRPORTS = {
     "LFPN": {
         "name": "Toussus le Noble",
         "elevation_ft": 538,
+        "lat": 48.7517, "lon": 2.1044,
         "runways": [
             {"ident": "07L", "true_heading": 73,  "tora": 1100, "lda": 1100, "surface": "dur",   "slope": 0.0},
             {"ident": "25R", "true_heading": 253, "tora": 1100, "lda": 1100, "surface": "dur",   "slope": 0.0},
@@ -23,6 +24,7 @@ AIRPORTS = {
     "LFOX": {
         "name": "Étampes-Mondésir",
         "elevation_ft": 519,
+        "lat": 48.3489, "lon": 2.1574,
         "runways": [
             {"ident": "10",  "true_heading": 100, "tora": 1100, "lda": 1100, "surface": "dur",   "slope": 0.0},
             {"ident": "28",  "true_heading": 280, "tora": 1100, "lda": 1100, "surface": "dur",   "slope": 0.0},
@@ -31,6 +33,7 @@ AIRPORTS = {
     "LFPT": {
         "name": "Pontoise-Cormeilles",
         "elevation_ft": 325,
+        "lat": 49.0967, "lon": 2.0408,
         "runways": [
             {"ident": "05",  "true_heading": 50,  "tora": 1690, "lda": 1690, "surface": "dur",   "slope": 0.0},
             {"ident": "23",  "true_heading": 230, "tora": 1690, "lda": 1690, "surface": "dur",   "slope": 0.0},
@@ -39,6 +42,7 @@ AIRPORTS = {
     "LFPK": {
         "name": "Coulommiers-Voisins",
         "elevation_ft": 470,
+        "lat": 48.8378, "lon": 2.9544,
         "runways": [
             {"ident": "08",  "true_heading": 80,  "tora": 1450, "lda": 1450, "surface": "dur",   "slope": 0.0},
             {"ident": "26",  "true_heading": 260, "tora": 1450, "lda": 1450, "surface": "dur",   "slope": 0.0},
@@ -47,6 +51,7 @@ AIRPORTS = {
     "LFPL": {
         "name": "Lognes-Émerainville",
         "elevation_ft": 365,
+        "lat": 48.8228, "lon": 2.6233,
         "runways": [
             {"ident": "08",  "true_heading": 80,  "tora": 760,  "lda": 760,  "surface": "dur",   "slope": 0.0},
             {"ident": "26",  "true_heading": 260, "tora": 760,  "lda": 760,  "surface": "dur",   "slope": 0.0},
@@ -55,6 +60,7 @@ AIRPORTS = {
     "LFFE": {
         "name": "La Ferté-Alais",
         "elevation_ft": 463,
+        "lat": 48.4969, "lon": 2.3517,
         "runways": [
             {"ident": "10",  "true_heading": 100, "tora": 750,  "lda": 750,  "surface": "herbe", "slope": 0.0},
             {"ident": "28",  "true_heading": 280, "tora": 750,  "lda": 750,  "surface": "herbe", "slope": 0.0},
@@ -63,6 +69,7 @@ AIRPORTS = {
     "LFPB": {
         "name": "Paris Le Bourget",
         "elevation_ft": 218,
+        "lat": 48.9694, "lon": 2.4414,
         "runways": [
             {"ident": "07",  "true_heading": 70,  "tora": 3000, "lda": 3000, "surface": "dur",   "slope": 0.0},
             {"ident": "25",  "true_heading": 250, "tora": 3000, "lda": 3000, "surface": "dur",   "slope": 0.0},
@@ -73,6 +80,7 @@ AIRPORTS = {
     "LFOA": {
         "name": "Avord",
         "elevation_ft": 580,
+        "lat": 47.0533, "lon": 2.6322,
         "runways": [
             {"ident": "08",  "true_heading": 80,  "tora": 2400, "lda": 2400, "surface": "dur",   "slope": 0.0},
             {"ident": "26",  "true_heading": 260, "tora": 2400, "lda": 2400, "surface": "dur",   "slope": 0.0},
@@ -81,6 +89,7 @@ AIRPORTS = {
     "LFOI": {
         "name": "Abbeville",
         "elevation_ft": 217,
+        "lat": 50.1436, "lon": 1.8319,
         "runways": [
             {"ident": "02",  "true_heading": 20,  "tora": 920,  "lda": 920,  "surface": "dur",   "slope": 0.0},
             {"ident": "20",  "true_heading": 200, "tora": 920,  "lda": 920,  "surface": "dur",   "slope": 0.0},
@@ -89,6 +98,7 @@ AIRPORTS = {
     "LFAQ": {
         "name": "Albert-Picardie",
         "elevation_ft": 364,
+        "lat": 49.9719, "lon": 2.6967,
         "runways": [
             {"ident": "09",  "true_heading": 90,  "tora": 2300, "lda": 2300, "surface": "dur",   "slope": 0.0},
             {"ident": "27",  "true_heading": 270, "tora": 2300, "lda": 2300, "surface": "dur",   "slope": 0.0},
@@ -97,6 +107,7 @@ AIRPORTS = {
     "LFAY": {
         "name": "Amiens-Glisy",
         "elevation_ft": 246,
+        "lat": 49.8722, "lon": 2.3868,
         "runways": [
             {"ident": "12",  "true_heading": 120, "tora": 1600, "lda": 1600, "surface": "dur",   "slope": 0.0},
             {"ident": "30",  "true_heading": 300, "tora": 1600, "lda": 1600, "surface": "dur",   "slope": 0.0},
@@ -105,6 +116,7 @@ AIRPORTS = {
     "LFOC": {
         "name": "Châteaudun",
         "elevation_ft": 433,
+        "lat": 48.0608, "lon": 1.3764,
         "runways": [
             {"ident": "10",  "true_heading": 100, "tora": 2500, "lda": 2500, "surface": "dur",   "slope": 0.0},
             {"ident": "28",  "true_heading": 280, "tora": 2500, "lda": 2500, "surface": "dur",   "slope": 0.0},
@@ -113,6 +125,7 @@ AIRPORTS = {
     "LFGS": {
         "name": "Saint-Cyr l'École",
         "elevation_ft": 372,
+        "lat": 48.8, "lon": 2.0719,
         "runways": [
             {"ident": "12",  "true_heading": 120, "tora": 940,  "lda": 940,  "surface": "dur",   "slope": 0.0},
             {"ident": "30",  "true_heading": 300, "tora": 940,  "lda": 940,  "surface": "dur",   "slope": 0.0},
@@ -121,6 +134,7 @@ AIRPORTS = {
     "LFAT": {
         "name": "Le Touquet",
         "elevation_ft": 36,
+        "lat": 50.5172, "lon": 1.6206,
         "runways": [
             {"ident": "14",  "true_heading": 140, "tora": 1849, "lda": 1849, "surface": "dur",   "slope": 0.0},
             {"ident": "32",  "true_heading": 320, "tora": 1849, "lda": 1849, "surface": "dur",   "slope": 0.0},
@@ -129,6 +143,7 @@ AIRPORTS = {
     "LFRD": {
         "name": "Dinard-Pleurtuit",
         "elevation_ft": 219,
+        "lat": 48.5878, "lon": -2.08,
         "runways": [
             {"ident": "17",  "true_heading": 170, "tora": 2150, "lda": 2150, "surface": "dur",   "slope": 0.0},
             {"ident": "35",  "true_heading": 350, "tora": 2150, "lda": 2150, "surface": "dur",   "slope": 0.0},
@@ -137,6 +152,7 @@ AIRPORTS = {
     "LFAQ": {
         "name": "Albert-Picardie",
         "elevation_ft": 364,
+        "lat": 49.9719, "lon": 2.6967,
         "runways": [
             {"ident": "09",  "true_heading": 90,  "tora": 2300, "lda": 2300, "surface": "dur",   "slope": 0.0},
         ],
