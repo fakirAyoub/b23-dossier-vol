@@ -341,80 +341,98 @@ def _draw_page_7_journal_nav(c):
         _t(c, 35, y0 + 15 + i * 12, line, size=8)
 
 
+def _airport_landing_context(icao: str, parsed_metar: dict, fallback_qnh: int,
+                             fallback_oat: float, fallback_wind: int):
+    """Retourne (alt_ft, qnh, oat, wind_kt, surface_grass, slope_pct,
+    runway_ident) pour un atterrissage à l'aérodrome donné.
+    Utilise les VAC (DB lib/airports.py) : meilleure piste face au vent +
+    surface et pente réelles de cette piste."""
+    from .airports import get_airport, best_runway_for_wind
+    from .wind import wind_components
+
+    ad = get_airport(icao)
+    qnh = (parsed_metar.get("qnh") if parsed_metar else None) or fallback_qnh
+    oat = (parsed_metar.get("temp") if parsed_metar else None)
+    if oat is None:
+        oat = fallback_oat
+    if not ad:
+        return None, qnh, oat, fallback_wind, False, 0.0, None
+
+    alt_ft = ad["elevation_ft"]
+    wind_kt = fallback_wind
+    runway_ident = None
+    surface_grass = False
+    slope_pct = 0.0
+
+    wind = parsed_metar.get("wind") if parsed_metar else None
+    if wind and wind.get("dir") is not None and ad.get("runways"):
+        rwy = best_runway_for_wind(icao, wind["dir"])
+        if rwy:
+            comp = wind_components(wind["dir"], wind.get("speed", 0),
+                                    rwy["true_heading"])
+            wind_kt = int(round(comp["headwind"]))
+            runway_ident = rwy["ident"]
+            surface_grass = (rwy.get("surface") == "herbe")
+            slope_pct = rwy.get("slope", 0.0)
+    elif ad.get("runways"):
+        # Pas de vent connu → 1ère piste par défaut
+        rwy = ad["runways"][0]
+        runway_ident = rwy["ident"]
+        surface_grass = (rwy.get("surface") == "herbe")
+        slope_pct = rwy.get("slope", 0.0)
+
+    return alt_ft, qnh, oat, wind_kt, surface_grass, slope_pct, runway_ident
+
+
 def _draw_page_8_perfs(c):
     """Page 8 — Performances complètes : DEPART + ARRIVEE + DEGAGEMENT(S).
 
-    Pour chaque aérodrome, on déduit conditions depuis le METAR si dispo,
-    sinon on utilise les valeurs saisies (DEPART) ou par défaut.
+    DECOLLAGE : conditions DEPART + piste sélectionnée page 5 (perf_*).
+    ATTERRISSAGE : conditions ARRIVEE + meilleure piste de l'aérodrome
+                   d'arrivée selon vent (depuis VAC dans lib/airports.py).
+    DEGAGEMENT(S) : conditions ARRIVEE/DEG + meilleure piste de chaque
+                    dégagement.
     """
     from .data import ROC_SL_MCP, ROC_SL_FLAPS10_MTOP
     from .airports import get_airport
-    from .wind import parse_metar_full, wind_components
+    from .wind import parse_metar_full
 
-    grass = st.session_state.get("perf_grass", False)
-    slope = st.session_state.get("perf_slope", 0.0)
-    wet = st.session_state.get("perf_wet", False)
-    tora = st.session_state.get("perf_tora", 1100)
-    lda = st.session_state.get("perf_lda", 1100)
-
-    # === Conditions par aéroport (DEPART, ARRIVEE, DEGAGEMENT 1) ===
-    # Conditions DEPART — saisies dans l'app
+    # === DÉPART (décollage) ===
     dep_qnh = st.session_state.get("perf_qnh", 1013)
     dep_oat = st.session_state.get("perf_oat", 15)
     dep_wind = st.session_state.get("perf_headwind", 0)
     dep_alt = st.session_state.get("perf_runway_alt", 538)
+    dep_grass = st.session_state.get("perf_grass", False)
+    dep_slope = st.session_state.get("perf_slope", 0.0)
+    dep_wet = st.session_state.get("perf_wet", False)
     total_mass = _total_mass()
 
-    # Conditions ARRIVEE — depuis METAR si dispo
-    arr_metar = st.session_state.get("metar_arr", "")
-    arr_parsed = parse_metar_full(arr_metar)
+    # === ARRIVEE (atterrissage) ===
     arr_icao = st.session_state.get("arrivee", "")
-    arr_ad = get_airport(arr_icao)
-    arr_alt = arr_ad["elevation_ft"] if arr_ad else dep_alt
-    arr_qnh = arr_parsed["qnh"] or dep_qnh
-    arr_oat = arr_parsed["temp"] if arr_parsed["temp"] is not None else dep_oat
-    # Composante vent à l'arrivée : si METAR + piste arrival connue
-    arr_wind = dep_wind  # fallback
-    if arr_parsed["wind"] and arr_parsed["wind"].get("dir") is not None and arr_ad:
-        # Choisir piste face au vent
-        from .airports import best_runway_for_wind
-        rwy = best_runway_for_wind(arr_icao, arr_parsed["wind"]["dir"])
-        if rwy:
-            comp = wind_components(arr_parsed["wind"]["dir"],
-                                    arr_parsed["wind"]["speed"],
-                                    rwy["true_heading"])
-            arr_wind = int(round(comp["headwind"]))
-    # Masse à l'arrivée = ZFM + fuel restant (ce qu'on a déjà calculé en M&B)
+    arr_parsed = parse_metar_full(st.session_state.get("metar_arr", ""))
+    (arr_alt, arr_qnh, arr_oat, arr_wind, arr_grass, arr_slope, arr_rwy
+     ) = _airport_landing_context(arr_icao, arr_parsed, dep_qnh, dep_oat, dep_wind)
+    if arr_alt is None:
+        arr_alt = dep_alt
     duree = st.session_state.get("duree_vol_h", 1.0)
     conso = st.session_state.get("conso_lh", 20.0)
     fuel_consumed_kg = duree * conso * 0.72
     fuel_taxi_kg = 5 * 0.72
     arr_mass = max(0, total_mass - fuel_consumed_kg - fuel_taxi_kg)
 
-    # Conditions DEGAGEMENT 1 — depuis METAR si dispo
-    deg_metar = st.session_state.get("metar_deg", "")
-    deg_parsed = parse_metar_full(deg_metar)
+    # === DEGAGEMENT 1 (pour conditions du jour) ===
     deg_list = [d.strip().upper() for d in
                 (st.session_state.get("degagements") or "").split(",") if d.strip()]
-    deg_icao = deg_list[0] if deg_list else ""
-    deg_ad = get_airport(deg_icao)
-    deg_alt = deg_ad["elevation_ft"] if deg_ad else dep_alt
-    deg_qnh = deg_parsed["qnh"] or dep_qnh
-    deg_oat = deg_parsed["temp"] if deg_parsed["temp"] is not None else dep_oat
-    deg_wind = arr_wind  # fallback
-    if deg_parsed["wind"] and deg_parsed["wind"].get("dir") is not None and deg_ad:
-        from .airports import best_runway_for_wind
-        rwy = best_runway_for_wind(deg_icao, deg_parsed["wind"]["dir"])
-        if rwy:
-            comp = wind_components(deg_parsed["wind"]["dir"],
-                                    deg_parsed["wind"]["speed"],
-                                    rwy["true_heading"])
-            deg_wind = int(round(comp["headwind"]))
+    deg_icao_1 = deg_list[0] if deg_list else ""
+    deg_parsed = parse_metar_full(st.session_state.get("metar_deg", ""))
+    (deg_alt, deg_qnh, deg_oat, deg_wind, deg_grass, deg_slope, deg_rwy
+     ) = _airport_landing_context(deg_icao_1, deg_parsed, arr_qnh, arr_oat, arr_wind)
+    if deg_alt is None:
+        deg_alt = dep_alt
     deroutement_kg = (st.session_state.get("deroutement_min", 0) / 60) * conso * 0.72
     deg_mass = max(0, arr_mass - deroutement_kg)
 
-    # === Conditions du jour (les 3 colonnes) ===
-    # X centres : DEPART=165, ARRIVEE=240, DEGAGEMENT=315
+    # === Conditions du jour (3 colonnes) ===
     cols = [
         (165, dep_wind, dep_qnh, dep_oat, total_mass),
         (240, arr_wind, arr_qnh, arr_oat, arr_mass),
@@ -426,46 +444,54 @@ def _draw_page_8_perfs(c):
         _t(c, x, 184, f"{t:.0f} °C", size=8)
         _t(c, x, 204, f"{m:.0f} kg", size=8)
 
-    # === Performances DEPART (table principale) ===
+    # === DECOLLAGE (DEPART) ===
     zp_dep = pressure_altitude(dep_alt, dep_qnh)
-    to = takeoff_perf(zp_dep, dep_oat, grass=grass, slope_pct=slope, wind_kt=dep_wind)
-    ld = landing_perf(zp_dep, dep_oat, grass=grass, slope_pct=slope, wet=wet, wind_kt=dep_wind)
+    to = takeoff_perf(zp_dep, dep_oat, grass=dep_grass, slope_pct=dep_slope, wind_kt=dep_wind)
 
     x_val = 255
-    # Distances utilisables (≤TORA, ≤LDA) : NON remplies — gérées manuellement par le pilote.
-
     _t(c, x_val, 259, f"{round(to['tor'])} m", size=8)
     _t(c, x_val, 281, f"{round(to['tod'])} m", size=8)
     _t(c, x_val, 305, f"{round(to['tor'])} m", size=8)
     _t(c, x_val, 331, f"{ROC_SL_MCP} ft/min", size=8)
 
-    # ATTERRISSAGE — utilise conditions ARRIVEE
+    # === ATTERRISSAGE (ARRIVEE) — utilise piste réelle de l'arrivée ===
     zp_arr = pressure_altitude(arr_alt, arr_qnh)
-    ld_arr = landing_perf(zp_arr, arr_oat, grass=grass, slope_pct=slope, wet=wet, wind_kt=arr_wind)
-
+    ld_arr = landing_perf(zp_arr, arr_oat,
+                          grass=arr_grass, slope_pct=arr_slope, wet=dep_wet,
+                          wind_kt=arr_wind)
     _t(c, x_val, 353, f"{round(ld_arr['ldd'])} m", size=8)
     _t(c, x_val, 379, f"{round(ld_arr['ldr'])} m", size=8)
     _t(c, x_val, 403, f"{ROC_SL_FLAPS10_MTOP} ft/min", size=8)
+    _t(c, x_val, 433, f"{round(ld_arr['ldd'] * 1.4)} m", size=8)  # volets UP
 
-    # Distance atterrissage volets UP — approximation = LDD × 1,4
-    ldd_up = round(ld_arr['ldd'] * 1.4)
-    _t(c, x_val, 433, f"{ldd_up} m", size=8)
+    # Note d'info dans la marge basse de l'atterrissage
+    if arr_rwy:
+        info = f"Atter. piste {arr_rwy} ({'herbe' if arr_grass else 'dur'})"
+        if arr_slope:
+            info += f", pente {arr_slope:+.1f}%"
+        _t(c, 35, 380, info, size=7, color=gray)
 
-    # === Performances DEGAGEMENT(S) — 3 colonnes (pas de limites LDA) ===
+    # === DEGAGEMENT(S) — 3 colonnes, piste réelle de chaque ===
     deg_cols_x = [285, 335, 385]
     for i, deg_ic in enumerate(deg_list[:3]):
         x_d = deg_cols_x[i]
         deg_ad_i = get_airport(deg_ic)
         if not deg_ad_i:
             continue
-        deg_alt_i = deg_ad_i["elevation_ft"]
-        zp_deg = pressure_altitude(deg_alt_i, deg_qnh)
-        ld_deg = landing_perf(zp_deg, deg_oat, grass=grass, slope_pct=slope,
-                              wet=wet, wind_kt=deg_wind)
-        _t(c, x_d, 460, f"{round(ld_deg['ldd'])}", size=7)
-        _t(c, x_d, 488, f"{round(ld_deg['ldr'])}", size=7)
+        # Réutilise les conditions parsed du 1er dégagement pour tous
+        # (simplification : un seul METAR de dégagement)
+        (d_alt, d_qnh, d_oat, d_wind, d_grass, d_slope, d_rwy
+         ) = _airport_landing_context(deg_ic, deg_parsed, arr_qnh, arr_oat, arr_wind)
+        if d_alt is None:
+            d_alt = deg_alt
+        zp_d = pressure_altitude(d_alt, d_qnh)
+        ld_d = landing_perf(zp_d, d_oat,
+                            grass=d_grass, slope_pct=d_slope, wet=dep_wet,
+                            wind_kt=d_wind)
+        _t(c, x_d, 460, f"{round(ld_d['ldd'])}", size=7)
+        _t(c, x_d, 488, f"{round(ld_d['ldr'])}", size=7)
         _t(c, x_d, 516, f"{ROC_SL_FLAPS10_MTOP}", size=7)
-        _t(c, x_d, 545, f"{round(ld_deg['ldd'] * 1.4)}", size=7)
+        _t(c, x_d, 545, f"{round(ld_d['ldd'] * 1.4)}", size=7)
 
 
 def _draw_page_9_carburant(c):
